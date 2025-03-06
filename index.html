@@ -169,6 +169,15 @@
         border-radius: 5px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       }
+
+      #fireworks-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: -1;
+        background: transparent !important;
+      }
     </style>
   </head>
   <body>
@@ -238,6 +247,9 @@
         <li>小节8（2 1 1 -）：按键顺序 → s, a, a</li>
       </ul>
     </div>
+
+    <!-- 在body末尾添加canvas元素 -->
+    <canvas id="fireworks-canvas"></canvas>
 
     <script>
       // 定义各自然音相对于C的半音偏移
@@ -349,6 +361,130 @@
         }, 1000);
       }
 
+      class Firework {
+        constructor(x, hue = 200) {
+          this.x = x;
+          this.y = document.documentElement.clientHeight;
+          this.hue = Math.random() * 50 + 280; // 粉色系
+          this.targetY = Math.random() * 200 + 100;
+          this.speed = 8;
+          this.angle = Math.PI / 2; // 垂直向上
+          this.radius = 2;
+          this.exploded = false;
+          this.particles = [];
+        }
+
+        update() {
+          if (!this.exploded) {
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y -= Math.sin(this.angle) * this.speed;
+
+            // 到达目标高度后爆炸
+            if (this.y <= this.targetY) {
+              this.explode();
+            }
+          }
+
+          // 更新粒子
+          this.particles = this.particles.filter((p) => {
+            p.update();
+            return p.opacity > 0.1;
+          });
+        }
+
+        explode() {
+          this.exploded = true;
+          const particleCount = 100;
+          for (let i = 0; i < particleCount; i++) {
+            const angle = Math.PI * 2 * (i / particleCount);
+            this.particles.push(new Particle(this.x, this.y, angle, this.hue));
+          }
+        }
+
+        draw(ctx) {
+          if (!this.exploded) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${this.hue}, 100%, 50%, 1)`;
+            ctx.fill();
+          }
+
+          this.particles.forEach((p) => p.draw(ctx));
+        }
+      }
+
+      class Particle {
+        constructor(x, y, angle, hue) {
+          this.x = x;
+          this.y = y;
+          this.angle = angle + (Math.random() - 0.5) * 0.4; // 随机偏移角度
+          this.velocity = Math.random() * 5 + 2;
+          this.hue = hue + Math.random() * 20 - 10;
+          this.gravity = 0.2;
+          this.opacity = 1;
+          this.friction = Math.random() * 0.05 + 0.95;
+          this.size = Math.random() * 2 + 1;
+        }
+
+        update() {
+          this.velocity *= this.friction;
+          this.x += Math.cos(this.angle) * this.velocity;
+          this.y += Math.sin(this.angle) * this.velocity + this.gravity;
+          this.opacity -= 0.015;
+        }
+
+        draw(ctx) {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${this.hue}, 80%, 60%, ${this.opacity})`;
+          ctx.fill();
+        }
+      }
+
+      // 烟花系统控制器
+      class FireworksSystem {
+        constructor() {
+          this.canvas = document.getElementById("fireworks-canvas");
+          this.ctx = this.canvas.getContext("2d");
+          this.fireworks = [];
+          this.resize();
+          window.addEventListener("resize", this.resize.bind(this));
+
+          // 监听钢琴事件触发烟花
+          document.querySelectorAll(".key").forEach((key) => {
+            key.addEventListener("mousedown", () => {
+              if (Math.random() > 0.7) {
+                // 30%概率触发
+                const rect = key.getBoundingClientRect();
+                this.launch(rect.left + rect.width / 2);
+              }
+            });
+          });
+        }
+
+        resize() {
+          this.canvas.width = window.innerWidth;
+          this.canvas.height = window.innerHeight;
+        }
+
+        launch(x) {
+          this.fireworks.push(new Firework(x));
+        }
+
+        animate() {
+          this.ctx.fillStyle = "rgba(255, 255, 255, 0.01)";
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+          this.fireworks = this.fireworks.filter((firework) => {
+            firework.update();
+            return !firework.exploded || firework.particles.length > 0;
+          });
+
+          this.fireworks.forEach((firework) => firework.draw(this.ctx));
+          requestAnimationFrame(this.animate.bind(this));
+        }
+      }
+
       // 键盘事件监听
       document.addEventListener("keydown", (event) => {
         const key = event.key.toLowerCase();
@@ -405,6 +541,9 @@
         });
 
       updateDisplay();
+      // 初始化烟花系统
+      const fireworks = new FireworksSystem();
+      fireworks.animate();
     </script>
   </body>
 </html>
