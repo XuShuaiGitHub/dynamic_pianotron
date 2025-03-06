@@ -1,77 +1,410 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>高级虚拟电子钢琴 - 跳动音符效果</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <h1>高级虚拟电子钢琴</h1>
-  <div class="controls">
-    <button id="octave-down">降低八度</button>
-    <span id="current-octave">当前基准八度: 4</span>
-    <button id="octave-up">提高八度</button>
-    <button id="transpose-down">转调 -1</button>
-    <button id="transpose-up">转调 +1</button>
-    <span id="current-transpose">当前转调: 0</span>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>高级虚拟电子钢琴 - 跳动音符效果</title>
+    <style>
+      :root {
+        --theme-color: #ff69b4;
+        --theme-gradient: linear-gradient(45deg, #ff69b4, #ff3366);
+      }
 
-  <div class="piano-container">
-    <div class="piano">
-      <!-- 白键 -->
-      <div class="key white" data-key="a" style="left: 0px;">a</div>
-      <div class="key white" data-key="s" style="left: 60px;">s</div>
-      <div class="key white" data-key="d" style="left: 120px;">d</div>
-      <div class="key white" data-key="f" style="left: 180px;">f</div>
-      <div class="key white" data-key="g" style="left: 240px;">g</div>
-      <div class="key white" data-key="h" style="left: 300px;">h</div>
-      <div class="key white" data-key="j" style="left: 360px;">j</div>
-      <div class="key white" data-key="k" style="left: 420px;">k</div>
+      body {
+        font-family: Arial, sans-serif;
+        background: var(--theme-gradient);
+        text-align: center;
+        margin: 0;
+        padding: 20px;
+      }
 
-      <!-- 黑键 -->
-      <div class="key black" data-key="w" style="left: 40px;">w</div>
-      <div class="key black" data-key="e" style="left: 100px;">e</div>
-      <div class="key black" data-key="t" style="left: 220px;">t</div>
-      <div class="key black" data-key="y" style="left: 280px;">y</div>
-      <div class="key black" data-key="u" style="left: 340px;">u</div>
+      h1 {
+        margin-bottom: 10px;
+      }
+
+      .controls {
+        margin-bottom: 20px;
+      }
+
+      .controls button {
+        padding: 8px 12px;
+        margin: 0 5px;
+        font-size: 14px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid var(--theme-color);
+        border-radius: 20px;
+        transition: all 0.3s;
+      }
+
+      .controls button:hover {
+        background: var(--theme-color);
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      .piano-container {
+        position: relative;
+        width: 480px;
+        height: 200px;
+        margin: 0 auto;
+      }
+
+      .piano {
+        position: relative;
+        width: 480px;
+        height: 200px;
+      }
+
+      .key {
+        position: absolute;
+        border: 1px solid #000;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .white {
+        width: 60px;
+        height: 200px;
+        background: white;
+        z-index: 1;
+      }
+
+      .black {
+        width: 40px;
+        height: 120px;
+        background: black;
+        z-index: 2;
+        color: #fff;
+      }
+
+      .key.active.white {
+        background: linear-gradient(45deg, #fff5f5, #ffecec);
+        box-shadow: inset 0 0 15px #ffb6c1;
+      }
+      .key.active.black {
+        background: #555;
+      }
+
+      .black.active::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -10px;
+        width: 140%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent 20%,
+          rgba(255, 182, 193, 0.6) 50%,
+          transparent 80%
+        );
+        animation: blackShine 0.4s;
+      }
+
+      @keyframes blackShine {
+        from {
+          left: -10px;
+        }
+        to {
+          left: 100%;
+        }
+      }
+
+      /* 浮动音符显示区域 */
+      #notes-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        pointer-events: none;
+        overflow: visible;
+      }
+
+      /* 浮动音符样式及动画 */
+      .floating-note {
+        position: absolute;
+        font-size: 24px;
+        color: #ff4500;
+        animation: jumpAndFade 1s ease-out forwards;
+      }
+
+      @keyframes jumpAndFade {
+        0% {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -100px);
+        }
+      }
+
+      .music-note-icon {
+        display: inline-block;
+        font-size: 32px;
+        /* 添加一个缩放跳动效果 */
+        animation: scaleBounce 1s ease-out forwards;
+      }
+
+      @keyframes scaleBounce {
+        0% {
+          transform: scale(0.5);
+        }
+        50% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .instructions {
+        margin-top: 30px;
+        text-align: left;
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+        background: #fff;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>高级虚拟电子钢琴</h1>
+    <div class="controls">
+      <button id="octave-down">降低八度</button>
+      <span id="current-octave">当前基准八度: 4</span>
+      <button id="octave-up">提高八度</button>
+      <button id="transpose-down">转调 -1</button>
+      <button id="transpose-up">转调 +1</button>
+      <span id="current-transpose">当前转调: 0</span>
     </div>
-  </div>
 
-  <!-- 浮动音符显示区域 -->
-  <div id="notes-container"></div>
+    <div class="piano-container">
+      <div class="piano">
+        <!-- 白键 -->
+        <div class="key white" data-key="a" style="left: 0px">a</div>
+        <div class="key white" data-key="s" style="left: 60px">s</div>
+        <div class="key white" data-key="d" style="left: 120px">d</div>
+        <div class="key white" data-key="f" style="left: 180px">f</div>
+        <div class="key white" data-key="g" style="left: 240px">g</div>
+        <div class="key white" data-key="h" style="left: 300px">h</div>
+        <div class="key white" data-key="j" style="left: 360px">j</div>
+        <div class="key white" data-key="k" style="left: 420px">k</div>
 
-  <div class="instructions">
-    <h2>键盘映射（当前基准八度和转调会影响实际音高）</h2>
-    <ul>
-      <li>a: C</li>
-      <li>w: C#</li>
-      <li>s: D</li>
-      <li>e: D#</li>
-      <li>d: E</li>
-      <li>f: F</li>
-      <li>t: F#</li>
-      <li>g: G</li>
-      <li>y: G#</li>
-      <li>h: A</li>
-      <li>u: A#</li>
-      <li>j: B</li>
-      <li>k: C（高于其他键一个八度）</li>
-    </ul>
-    <p>通过“提高八度/降低八度”和“转调”按钮，你可以调整基准音域。每次按键触发后，还会出现一个跳动的音符动画，让交互更生动。</p>
-    <h2>以钢琴曲《欢乐颂》为例，其演奏乐谱为：</h2>
-    <ul>
-      <li>小节1（3 3 4 5）：按键顺序 → d, d, f, g</li>
-      <li>小节2（5 4 3 2）：按键顺序 → g, f, d, s</li>
-      <li>小节3（1 1 2 3）：按键顺序 → a, a, s, d</li>
-      <li>小节4（3 2 2 -）：按键顺序 → d, s, s</li>
-      <li>小节5（3 3 4 5）：按键顺序 → d, d, f, g</li>
-      <li>小节6（5 4 3 2）：按键顺序 → g, f, d, s</li>
-      <li>小节7（1 1 2 3）：按键顺序 → a, a, s, d</li>
-      <li>小节8（2 1 1 -）：按键顺序 → s, a, a</li>
-    </ul>
-  </div>
+        <!-- 黑键 -->
+        <div class="key black" data-key="w" style="left: 40px">w</div>
+        <div class="key black" data-key="e" style="left: 100px">e</div>
+        <div class="key black" data-key="t" style="left: 220px">t</div>
+        <div class="key black" data-key="y" style="left: 280px">y</div>
+        <div class="key black" data-key="u" style="left: 340px">u</div>
+      </div>
+    </div>
 
-  <script src="script.js"></script>
-</body>
+    <!-- 浮动音符显示区域 -->
+    <div id="notes-container"></div>
+
+    <div class="instructions">
+      <h2>键盘映射（当前基准八度和转调会影响实际音高）</h2>
+      <ul>
+        <li>a: C</li>
+        <li>w: C#</li>
+        <li>s: D</li>
+        <li>e: D#</li>
+        <li>d: E</li>
+        <li>f: F</li>
+        <li>t: F#</li>
+        <li>g: G</li>
+        <li>y: G#</li>
+        <li>h: A</li>
+        <li>u: A#</li>
+        <li>j: B</li>
+        <li>k: C（高于其他键一个八度）</li>
+      </ul>
+      <p>
+        通过“提高八度/降低八度”和“转调”按钮，你可以调整基准音域。每次按键触发后，还会出现一个跳动的音符动画，让交互更生动。
+      </p>
+      <h2>以钢琴曲《欢乐颂》为例，其演奏乐谱为：</h2>
+      <ul>
+        <li>小节1（3 3 4 5）：按键顺序 → d, d, f, g</li>
+        <li>小节2（5 4 3 2）：按键顺序 → g, f, d, s</li>
+        <li>小节3（1 1 2 3）：按键顺序 → a, a, s, d</li>
+        <li>小节4（3 2 2 -）：按键顺序 → d, s, s</li>
+        <li>小节5（3 3 4 5）：按键顺序 → d, d, f, g</li>
+        <li>小节6（5 4 3 2）：按键顺序 → g, f, d, s</li>
+        <li>小节7（1 1 2 3）：按键顺序 → a, a, s, d</li>
+        <li>小节8（2 1 1 -）：按键顺序 → s, a, a</li>
+      </ul>
+    </div>
+
+    <script>
+      // 定义各自然音相对于C的半音偏移
+      const noteOffsets = {
+        C: 0,
+        "C#": 1,
+        D: 2,
+        "D#": 3,
+        E: 4,
+        F: 5,
+        "F#": 6,
+        G: 7,
+        "G#": 8,
+        A: 9,
+        "A#": 10,
+        B: 11,
+      };
+
+      // 键盘映射，每个键映射到音符和相对于基准八度的偏移
+      const keyMap = {
+        a: { note: "C", octaveOffset: 0 },
+        w: { note: "C#", octaveOffset: 0 },
+        s: { note: "D", octaveOffset: 0 },
+        e: { note: "D#", octaveOffset: 0 },
+        d: { note: "E", octaveOffset: 0 },
+        f: { note: "F", octaveOffset: 0 },
+        t: { note: "F#", octaveOffset: 0 },
+        g: { note: "G", octaveOffset: 0 },
+        y: { note: "G#", octaveOffset: 0 },
+        h: { note: "A", octaveOffset: 0 },
+        u: { note: "A#", octaveOffset: 0 },
+        j: { note: "B", octaveOffset: 0 },
+        k: { note: "C", octaveOffset: 1 }, // “k”键代表高一个八度的C
+      };
+
+      let baseOctave = 4;
+      let transpose = 0;
+
+      function updateDisplay() {
+        document.getElementById(
+          "current-octave"
+        ).textContent = `当前基准八度: ${baseOctave}`;
+        document.getElementById(
+          "current-transpose"
+        ).textContent = `当前转调: ${transpose}`;
+      }
+
+      // 计算音符频率：f = 440 × 2^((effectiveSemitone)/12)
+      function getFrequency(note, octave) {
+        const semitoneDiff =
+          (octave - 4) * 12 +
+          (noteOffsets[note] - noteOffsets["A"]) +
+          transpose;
+        return 440 * Math.pow(2, semitoneDiff / 12);
+      }
+
+      // 播放音符
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      let oscillator;
+
+      function playNote(note, octave) {
+        oscillator?.stop();
+        const freq = getFrequency(note, octave);
+        oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        const safeFreq = Math.max(
+          0.0001,
+          Math.min(96000, Number.isFinite(freq) ? freq : 440)
+        ); // 强制限定有效范围
+        oscillator.frequency.value = Math.fround(safeFreq); // 解决精度问题
+        oscillator.type = "sine";
+
+        const now = audioContext.currentTime;
+        gainNode.gain.cancelScheduledValues(now);
+        // 在当前时间立即将增益值设为0，即音量为0
+        gainNode.gain.setValueAtTime(0, now);
+        // 在0.1秒内使增益值线性上升到1
+        gainNode.gain.linearRampToValueAtTime(1, now + 0.1);
+        // now+0.5秒后，将增益设置为1
+        gainNode.gain.setValueAtTime(1, now + 0.5);
+        // 在 now+0.45 到 now+0.7 之间，使增益值线性下降到0
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.7);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.7);
+      }
+
+      // 显示跳动音符的动画效果
+      function showFloatingNote(note, octave, keyElement) {
+        const container = document.getElementById("notes-container");
+        const noteDiv = document.createElement("div");
+        noteDiv.className = "floating-note";
+        // noteDiv.textContent = note + octave; // 如 "C4"
+        noteDiv.innerHTML = '<span class="music-note-icon">🎈</span>';
+
+        // 以琴键位置为基准
+        const rect = keyElement.getBoundingClientRect();
+        noteDiv.style.left = rect.left + rect.width / 2 + "px";
+        noteDiv.style.top = rect.top - 30 + "px"; // 显示在琴键上方30px处
+
+        container.appendChild(noteDiv);
+        // 动画结束后移除元素（动画时长1秒）
+        setTimeout(() => {
+          container.removeChild(noteDiv);
+        }, 1000);
+      }
+
+      // 键盘事件监听
+      document.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+        if (keyMap[key]) {
+          const { note, octaveOffset } = keyMap[key];
+          const effectiveOctave = baseOctave + octaveOffset;
+          playNote(note, effectiveOctave);
+          const keyElement = document.querySelector(`.key[data-key="${key}"]`);
+          if (keyElement) {
+            keyElement.classList.add("active");
+            showFloatingNote(note, effectiveOctave, keyElement);
+            setTimeout(() => {
+              keyElement.classList.remove("active");
+            }, 200);
+          }
+        }
+      });
+
+      // 鼠标点击事件
+      document.querySelectorAll(".key").forEach((keyEl) => {
+        keyEl.addEventListener("click", () => {
+          const key = keyEl.getAttribute("data-key");
+          if (keyMap[key]) {
+            const { note, octaveOffset } = keyMap[key];
+            const effectiveOctave = baseOctave + octaveOffset;
+            playNote(note, effectiveOctave);
+            keyEl.classList.add("active");
+            showFloatingNote(note, effectiveOctave, keyEl);
+            setTimeout(() => {
+              keyEl.classList.remove("active");
+            }, 200);
+          }
+        });
+      });
+
+      // 控制面板按钮
+      document.getElementById("octave-up").addEventListener("click", () => {
+        baseOctave++;
+        updateDisplay();
+      });
+      document.getElementById("octave-down").addEventListener("click", () => {
+        baseOctave--;
+        updateDisplay();
+      });
+      document.getElementById("transpose-up").addEventListener("click", () => {
+        transpose++;
+        updateDisplay();
+      });
+      document
+        .getElementById("transpose-down")
+        .addEventListener("click", () => {
+          transpose--;
+          updateDisplay();
+        });
+
+      updateDisplay();
+    </script>
+  </body>
 </html>
