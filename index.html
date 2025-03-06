@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>高级虚拟电子钢琴 - 跳动音符效果</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>高级虚拟电子钢琴</h1>
+  <div class="controls">
+    <button id="octave-down">降低八度</button>
+    <span id="current-octave">当前基准八度: 4</span>
+    <button id="octave-up">提高八度</button>
+    <button id="transpose-down">转调 -1</button>
+    <button id="transpose-up">转调 +1</button>
+    <span id="current-transpose">当前转调: 0</span>
+  </div>
+
+  <div class="piano-container">
+    <div class="piano">
+      <!-- 白键 -->
+      <div class="key white" data-key="a" style="left: 0px;">a</div>
+      <div class="key white" data-key="s" style="left: 60px;">s</div>
+      <div class="key white" data-key="d" style="left: 120px;">d</div>
+      <div class="key white" data-key="f" style="left: 180px;">f</div>
+      <div class="key white" data-key="g" style="left: 240px;">g</div>
+      <div class="key white" data-key="h" style="left: 300px;">h</div>
+      <div class="key white" data-key="j" style="left: 360px;">j</div>
+      <div class="key white" data-key="k" style="left: 420px;">k</div>
+
+      <!-- 黑键 -->
+      <div class="key black" data-key="w" style="left: 40px;">w</div>
+      <div class="key black" data-key="e" style="left: 100px;">e</div>
+      <div class="key black" data-key="t" style="left: 220px;">t</div>
+      <div class="key black" data-key="y" style="left: 280px;">y</div>
+      <div class="key black" data-key="u" style="left: 340px;">u</div>
+    </div>
+  </div>
+
+  <!-- 浮动音符显示区域 -->
+  <div id="notes-container"></div>
+
+  <div class="instructions">
+    <h2>键盘映射（当前基准八度和转调会影响实际音高）</h2>
+    <ul>
+      <li>a: C</li>
+      <li>w: C#</li>
+      <li>s: D</li>
+      <li>e: D#</li>
+      <li>d: E</li>
+      <li>f: F</li>
+      <li>t: F#</li>
+      <li>g: G</li>
+      <li>y: G#</li>
+      <li>h: A</li>
+      <li>u: A#</li>
+      <li>j: B</li>
+      <li>k: C（高于其他键一个八度）</li>
+    </ul>
+    <p>通过“提高八度/降低八度”和“转调”按钮，你可以调整基准音域。每次按键触发后，还会出现一个跳动的音符动画，让交互更生动。</p>
+    <h2>以钢琴曲《欢乐颂》为例，其演奏乐谱为：</h2>
+    <ul>
+      <li>小节1（3 3 4 5）：按键顺序 → d, d, f, g</li>
+      <li>小节2（5 4 3 2）：按键顺序 → g, f, d, s</li>
+      <li>小节3（1 1 2 3）：按键顺序 → a, a, s, d</li>
+      <li>小节4（3 2 2 -）：按键顺序 → d, s, s</li>
+      <li>小节5（3 3 4 5）：按键顺序 → d, d, f, g</li>
+      <li>小节6（5 4 3 2）：按键顺序 → g, f, d, s</li>
+      <li>小节7（1 1 2 3）：按键顺序 → a, a, s, d</li>
+      <li>小节8（2 1 1 -）：按键顺序 → s, a, a</li>
+    </ul>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

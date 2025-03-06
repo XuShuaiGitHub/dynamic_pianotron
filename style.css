@@ -1,0 +1,124 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+.controls {
+  margin-bottom: 20px;
+}
+
+.controls button {
+  padding: 8px 12px;
+  margin: 0 5px;
+  font-size: 14px;
+}
+
+.piano-container {
+  position: relative;
+  width: 480px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+.piano {
+  position: relative;
+  width: 480px;
+  height: 200px;
+}
+
+.key {
+  position: absolute;
+  border: 1px solid #000;
+  cursor: pointer;
+  user-select: none;
+}
+
+.white {
+  width: 60px;
+  height: 200px;
+  background: white;
+  z-index: 1;
+}
+
+.black {
+  width: 40px;
+  height: 120px;
+  background: black;
+  z-index: 2;
+  color: #fff;
+}
+
+.key.active.white {
+  background: #ccc;
+}
+.key.active.black {
+  background: #555;
+}
+
+/* 浮动音符显示区域 */
+#notes-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* 浮动音符样式及动画 */
+.floating-note {
+  position: absolute;
+  font-size: 24px;
+  color: #ff4500;
+  animation: jumpAndFade 1s ease-out forwards;
+}
+
+@keyframes jumpAndFade {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -100px);
+  }
+}
+
+.music-note-icon {
+  display: inline-block;
+  font-size: 32px;
+  /* 添加一个缩放跳动效果 */
+  animation: scaleBounce 1s ease-out forwards;
+}
+
+@keyframes scaleBounce {
+  0% {
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+
+.instructions {
+  margin-top: 30px;
+  text-align: left;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  background: #fff;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
