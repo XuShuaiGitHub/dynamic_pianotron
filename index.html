@@ -6,13 +6,12 @@
     <title>高级虚拟电子钢琴 - 跳动音符效果</title>
     <style>
       :root {
-        --theme-color: #0a0a0a;
+        --theme-color: #ee479a;
         --theme-gradient: linear-gradient(45deg, #ff69b4, #ff3366);
       }
 
       body {
         font-family: Arial, sans-serif;
-        background: var(--theme-color);
         text-align: center;
         margin: 0;
         padding: 20px;
@@ -34,7 +33,7 @@
         margin: 0 5px;
         font-size: 14px;
         background: rgba(255, 255, 255, 0.9);
-        border: 2px solid var(--theme-color);
+        border: 2px solid var(--theme-gradient);
         border-radius: 20px;
         transition: all 0.3s;
       }
@@ -45,7 +44,7 @@
       }
 
       .controls button:hover {
-        background: var(--theme-color);
+        background: var(--theme-gradient);
         color: white;
         transform: translateY(-2px);
       }
@@ -118,54 +117,6 @@
         }
         to {
           left: 100%;
-        }
-      }
-
-      /* 浮动音符显示区域 */
-      #notes-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        pointer-events: none;
-        overflow: visible;
-      }
-
-      /* 浮动音符样式及动画 */
-      .floating-note {
-        position: absolute;
-        font-size: 24px;
-        color: #ff4500;
-        animation: jumpAndFade 1s ease-out forwards;
-      }
-
-      @keyframes jumpAndFade {
-        0% {
-          opacity: 1;
-          transform: translate(-50%, 0);
-        }
-        100% {
-          opacity: 0;
-          transform: translate(-50%, -100px);
-        }
-      }
-
-      .music-note-icon {
-        display: inline-block;
-        font-size: 32px;
-        /* 添加一个缩放跳动效果 */
-        animation: scaleBounce 1s ease-out forwards;
-      }
-
-      @keyframes scaleBounce {
-        0% {
-          transform: scale(0.5);
-        }
-        50% {
-          transform: scale(1.2);
-        }
-        100% {
-          transform: scale(1);
         }
       }
 
@@ -351,35 +302,15 @@
         oscillator.stop(now + 0.7);
       }
 
-      // 显示跳动音符的动画效果
-      function showFloatingNote(note, octave, keyElement) {
-        const container = document.getElementById("notes-container");
-        const noteDiv = document.createElement("div");
-        noteDiv.className = "floating-note";
-        // noteDiv.textContent = note + octave; // 如 "C4"
-        noteDiv.innerHTML = '<span class="music-note-icon">🎈</span>';
-
-        // 以琴键位置为基准
-        const rect = keyElement.getBoundingClientRect();
-        noteDiv.style.left = rect.left + rect.width / 2 + "px";
-        noteDiv.style.top = rect.top - 30 + "px"; // 显示在琴键上方30px处
-
-        container.appendChild(noteDiv);
-        // 动画结束后移除元素（动画时长1秒）
-        setTimeout(() => {
-          container.removeChild(noteDiv);
-        }, 1000);
-      }
-
       // 烟花系统核心实现
       class Firework {
-        constructor(startX) {
+        constructor({ startX, hue, targetY, speed }) {
           this.x = startX;
           this.y = window.innerHeight + 50; // 从屏幕底部外开始
-          this.targetY = window.innerHeight * 0.7; // 精确到屏幕可视区域的一定高度（非文档总高度）
-          this.speed = 18; // 提升初始速度
+          this.targetY = targetY || window.innerHeight * 0.7; // 精确到屏幕可视区域的一定高度（非文档总高度）
+          this.speed = speed || 18; // 提升初始速度
           this.radius = 5; // 增大上升光球尺寸
-          this.hue = Math.random() * 50 + 280; // 粉色系
+          this.hue = hue || Math.random() * 50 + 280; // 粉色系
           this.particles = [];
           this.exploded = false;
         }
@@ -399,7 +330,7 @@
           this.particles.forEach((p) => p.update());
           this.particles = this.particles
             .filter((p) => p.opacity > 0.1)
-            .slice(0, 300); // 性能优化：只保留opacity大于0.1的粒子
+            .slice(0, 300); // 性能优化
         }
 
         explode() {
@@ -457,9 +388,9 @@
           this.y = y;
           this.angle = angle + (Math.random() - 0.5) * 1.2;
           this.velocity = Math.random() * 8 + 5;
-          this.gravity = 0.4; // 加大重力
-          this.friction = 0.93; // 减少空气阻力
-          this.hue = hue + Math.random() * 30 - 15; // 色相波动
+          this.gravity = 0.5; // 加大重力
+          this.friction = 0.91; // 减少空气阻力
+          this.hue = hue + Math.random() * 60 - 20; // 色相波动
           this.size = Math.random() * 3 + 1;
           this.opacity = 1;
         }
@@ -468,7 +399,7 @@
           this.velocity *= this.friction;
           this.x += Math.cos(this.angle) * this.velocity;
           this.y += Math.sin(this.angle) * this.velocity + this.gravity;
-          this.opacity -= 0.018; // 减缓消失速度
+          this.opacity -= 0.013; // 减缓消失速度
         }
 
         draw(ctx) {
@@ -489,21 +420,27 @@
       // 烟花系统控制器
       class FireworksSystem {
         constructor() {
-          // 初始化烟花粒子
-          this.fireworks = [];
-          // 初始化星星数组
-          this.stars = [];
+          this.fireworks = []; // 初始化烟花粒子
+          this.stars = []; // 初始化星星数组
+          // 频率映射参数
+          this.minFreq = 130.81; // C3 (最低音)
+          this.maxFreq = 2093.0; // C7 (最高音)
+          this.heightRange = [0.5, 0.9]; // 屏幕高度比例范围 [最高音位置, 最低音位置]
 
           this.canvas = document.getElementById("fireworks-canvas");
           this.ctx = this.canvas.getContext("2d");
           this.resize();
           window.addEventListener("resize", () => this.resize());
 
-          // 绑定琴键事件
-          document.querySelectorAll(".key").forEach((key) => {
-            key.addEventListener("mousedown", () => {
-              const rect = key.getBoundingClientRect();
-              this.launch(rect.left + rect.width / 2);
+          // 在琴键事件绑定中传递频率
+          document.querySelectorAll(".key").forEach((keyElement) => {
+            keyElement.addEventListener("mousedown", () => {
+              const rect = keyElement.getBoundingClientRect();
+              const key = keyElement.getAttribute("data-key");
+              const { note, octaveOffset } = keyMap[key];
+              const effectiveOctave = baseOctave + octaveOffset;
+              const frequency = getFrequency(note, effectiveOctave);
+              fireworks.launch(rect.left + rect.width / 2, frequency);
             });
           });
 
@@ -558,8 +495,23 @@
           this.initStars(200); // 重置星星位置
         }
 
-        launch(x) {
-          this.fireworks.push(new Firework(x));
+        launch(x, frequency) {
+          // 标准化频率到高度比例
+          const normalized =
+            (Math.log2(frequency) - Math.log2(this.minFreq)) /
+            (Math.log2(this.maxFreq) - Math.log2(this.minFreq));
+          const targetYRatio =
+            this.heightRange[0] +
+            (1 - normalized) * (this.heightRange[1] - this.heightRange[0]);
+
+          const firework = new Firework({
+            startX: x,
+            hue: Math.random() * 360, // 全色域随机
+            targetY: window.innerHeight * targetYRatio, // 频率越高Y值越小（位置更高）
+            speed: 18 + normalized * 10, // 高频音符速度更快
+          });
+
+          this.fireworks.push(firework);
         }
 
         animate() {
@@ -596,7 +548,6 @@
             const effectiveOctave = baseOctave + octaveOffset;
             playNote(note, effectiveOctave);
             keyEl.classList.add("active");
-            showFloatingNote(note, effectiveOctave, keyEl);
             setTimeout(() => {
               keyEl.classList.remove("active");
             }, 200);
@@ -614,7 +565,6 @@
           const keyElement = document.querySelector(`.key[data-key="${key}"]`);
           if (keyElement) {
             keyElement.classList.add("active");
-            showFloatingNote(note, effectiveOctave, keyElement);
             setTimeout(() => {
               keyElement.classList.remove("active");
             }, 200);
@@ -642,6 +592,7 @@
           updateDisplay();
         });
 
+      // 初始化音调显示
       updateDisplay();
 
       // 初始化烟花系统
