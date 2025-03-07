@@ -24,6 +24,8 @@
       }
 
       .controls {
+        position: relative;
+        z-index: 2; /* 高于Canvas */
         margin-bottom: 20px;
       }
 
@@ -37,7 +39,8 @@
         transition: all 0.3s;
       }
 
-      .controls #current-octave {
+      .controls #current-octave,
+      .controls #current-transpose {
         color: white;
       }
 
@@ -372,22 +375,18 @@
       class Firework {
         constructor(startX) {
           this.x = startX;
-          // 确保从屏幕外底部开始（包含滚动条高度）
-          this.y = document.documentElement.scrollHeight + 50;
-          // 精确到屏幕可视区域的一定高度（非文档总高度）
-          this.targetY = window.innerHeight * 0.7;
+          this.y = window.innerHeight + 50; // 从屏幕底部外开始
+          this.targetY = window.innerHeight * 0.7; // 精确到屏幕可视区域的一定高度（非文档总高度）
           this.speed = 18; // 提升初始速度
-          this.radius = 4; // 增大上升光球尺寸
-          this.hue = Math.random() * 50 + 280;
+          this.radius = 5; // 增大上升光球尺寸
+          this.hue = Math.random() * 50 + 280; // 粉色系
           this.particles = [];
           this.exploded = false;
         }
 
         update() {
           if (!this.exploded) {
-            // 添加速度衰减曲线（接近目标时减速）
-            this.speed *= 0.96;
-            this.y -= this.speed;
+            this.y -= this.speed * 0.98; // 添加速度衰减
 
             // 双重高度验证（防止溢出屏幕顶部）
             const isOverTarget = this.y <= this.targetY;
@@ -398,7 +397,9 @@
           }
 
           this.particles.forEach((p) => p.update());
-          this.particles = this.particles.filter((p) => p.opacity > 0.1);
+          this.particles = this.particles
+            .filter((p) => p.opacity > 0.1)
+            .slice(0, 300); // 性能优化：只保留opacity大于0.1的粒子
         }
 
         explode() {
@@ -413,16 +414,40 @@
         draw(ctx) {
           // 绘制上升轨迹
           if (!this.exploded) {
+            // 创建轨迹渐变
+            const gradient = ctx.createLinearGradient(
+              this.x,
+              window.innerHeight,
+              this.x,
+              this.y
+            );
+            gradient.addColorStop(0, `hsla(${this.hue}, 80%, 60%, 0.7)`);
+            gradient.addColorStop(1, `hsla(${this.hue}, 80%, 70%, 0.3)`);
+
+            // 绘制加宽轨迹（动态线宽）
             ctx.beginPath();
-            ctx.moveTo(this.x, document.documentElement.clientHeight);
+            ctx.moveTo(this.x, window.innerHeight);
             ctx.lineTo(this.x, this.y);
-            ctx.strokeStyle = `hsla(${this.hue}, 80%, 60%, 0.7)`;
-            ctx.lineWidth = 2;
+            ctx.lineWidth = Math.max(8 * (1 - this.y / this.targetY), 4); // 动态宽度计算
+            ctx.strokeStyle = gradient;
             ctx.stroke();
+
+            // 绘制发光核心
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(60, 80%, 70%, 0.9)`;
+            ctx.fill();
           }
 
           // 绘制爆炸粒子
-          this.particles.forEach((p) => p.draw(ctx));
+          this.particles.forEach((p) => {
+            p.draw(ctx);
+            // 粒子拖尾光晕
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${p.hue}, 60%, 50%, ${p.opacity * 0.3})`;
+            ctx.fill();
+          });
         }
       }
 
@@ -435,8 +460,8 @@
           this.gravity = 0.4; // 加大重力
           this.friction = 0.93; // 减少空气阻力
           this.hue = hue + Math.random() * 30 - 15; // 色相波动
-          this.opacity = 1;
           this.size = Math.random() * 3 + 1;
+          this.opacity = 1;
         }
 
         update() {
@@ -464,7 +489,11 @@
       // 烟花系统控制器
       class FireworksSystem {
         constructor() {
+          // 初始化烟花粒子
           this.fireworks = [];
+          // 初始化星星数组
+          this.stars = [];
+
           this.canvas = document.getElementById("fireworks-canvas");
           this.ctx = this.canvas.getContext("2d");
           this.resize();
@@ -481,9 +510,52 @@
           this.animate();
         }
 
+        // 初始化星空
+        initStars(count) {
+          for (let i = 0; i < count; i++) {
+            this.stars.push({
+              x: Math.random() * this.canvas.width,
+              y: Math.random() * this.canvas.height,
+              size: Math.random() * 1.5 + 0.5,
+              alpha: Math.random() * 0.5 + 0.5,
+              speed: Math.random() * 0.02 + 0.01,
+            });
+          }
+        }
+
+        // 绘制星空背景
+        drawBackground() {
+          // 创建深空渐变背景
+          const gradient = this.ctx.createRadialGradient(
+            this.canvas.width / 2,
+            this.canvas.height / 2,
+            0,
+            this.canvas.width / 2,
+            this.canvas.height / 2,
+            Math.max(this.canvas.width, this.canvas.height)
+          );
+          gradient.addColorStop(0, "#0a0a2a");
+          gradient.addColorStop(1, "#000000");
+
+          this.ctx.fillStyle = gradient;
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+          // 绘制闪烁星星
+          this.stars.forEach((star) => {
+            star.alpha += star.speed;
+            if (star.alpha > 1 || star.alpha < 0.3) star.speed *= -1;
+
+            this.ctx.beginPath();
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+            this.ctx.fill();
+          });
+        }
+
         resize() {
           this.canvas.width = window.innerWidth;
           this.canvas.height = window.innerHeight;
+          this.initStars(200); // 重置星星位置
         }
 
         launch(x) {
@@ -491,7 +563,11 @@
         }
 
         animate() {
+          // 先清空画布
           this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+          // 先绘制星空背景
+          this.drawBackground();
 
           // 添加尾迹效果
           this.ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
