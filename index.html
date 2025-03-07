@@ -6,16 +6,17 @@
     <title>高级虚拟电子钢琴 - 跳动音符效果</title>
     <style>
       :root {
-        --theme-color: #ff69b4;
+        --theme-color: #0a0a0a;
         --theme-gradient: linear-gradient(45deg, #ff69b4, #ff3366);
       }
 
       body {
         font-family: Arial, sans-serif;
-        background: var(--theme-gradient);
+        background: var(--theme-color);
         text-align: center;
         margin: 0;
         padding: 20px;
+        overflow: hidden;
       }
 
       h1 {
@@ -36,6 +37,10 @@
         transition: all 0.3s;
       }
 
+      .controls #current-octave {
+        color: white;
+      }
+
       .controls button:hover {
         background: var(--theme-color);
         color: white;
@@ -47,6 +52,9 @@
         width: 480px;
         height: 200px;
         margin: 0 auto;
+        z-index: 2; /* 高于Canvas */
+        background: rgba(255, 255, 255, 0.8); /* 半透明白底 */
+        backdrop-filter: blur(5px); /* 毛玻璃效果 */
       }
 
       .piano {
@@ -175,8 +183,7 @@
         top: 0;
         left: 0;
         pointer-events: none;
-        z-index: -1;
-        background: transparent !important;
+        z-index: 1;
       }
     </style>
   </head>
@@ -215,7 +222,7 @@
     <!-- 浮动音符显示区域 -->
     <div id="notes-container"></div>
 
-    <div class="instructions">
+    <!-- <div class="instructions">
       <h2>键盘映射（当前基准八度和转调会影响实际音高）</h2>
       <ul>
         <li>a: C</li>
@@ -246,7 +253,7 @@
         <li>小节7（1 1 2 3）：按键顺序 → a, a, s, d</li>
         <li>小节8（2 1 1 -）：按键顺序 → s, a, a</li>
       </ul>
-    </div>
+    </div> -->
 
     <!-- 在body末尾添加canvas元素 -->
     <canvas id="fireworks-canvas"></canvas>
@@ -361,54 +368,60 @@
         }, 1000);
       }
 
+      // 烟花系统核心实现
       class Firework {
-        constructor(x, hue = 200) {
-          this.x = x;
-          this.y = document.documentElement.clientHeight;
-          this.hue = Math.random() * 50 + 280; // 粉色系
-          this.targetY = Math.random() * 200 + 100;
-          this.speed = 8;
-          this.angle = Math.PI / 2; // 垂直向上
-          this.radius = 2;
-          this.exploded = false;
+        constructor(startX) {
+          this.x = startX;
+          // 确保从屏幕外底部开始（包含滚动条高度）
+          this.y = document.documentElement.scrollHeight + 50;
+          // 精确到屏幕可视区域的一定高度（非文档总高度）
+          this.targetY = window.innerHeight * 0.7;
+          this.speed = 18; // 提升初始速度
+          this.radius = 4; // 增大上升光球尺寸
+          this.hue = Math.random() * 50 + 280;
           this.particles = [];
+          this.exploded = false;
         }
 
         update() {
           if (!this.exploded) {
-            this.x += Math.cos(this.angle) * this.speed;
-            this.y -= Math.sin(this.angle) * this.speed;
+            // 添加速度衰减曲线（接近目标时减速）
+            this.speed *= 0.96;
+            this.y -= this.speed;
 
-            // 到达目标高度后爆炸
-            if (this.y <= this.targetY) {
+            // 双重高度验证（防止溢出屏幕顶部）
+            const isOverTarget = this.y <= this.targetY;
+            const isOverTop = this.y <= 0;
+            if (isOverTarget || isOverTop) {
               this.explode();
             }
           }
 
-          // 更新粒子
-          this.particles = this.particles.filter((p) => {
-            p.update();
-            return p.opacity > 0.1;
-          });
+          this.particles.forEach((p) => p.update());
+          this.particles = this.particles.filter((p) => p.opacity > 0.1);
         }
 
         explode() {
           this.exploded = true;
-          const particleCount = 100;
-          for (let i = 0; i < particleCount; i++) {
-            const angle = Math.PI * 2 * (i / particleCount);
-            this.particles.push(new Particle(this.x, this.y, angle, this.hue));
+          for (let i = 0; i < 100; i++) {
+            this.particles.push(
+              new Particle(this.x, this.y, Math.PI * 2 * (i / 100), this.hue)
+            );
           }
         }
 
         draw(ctx) {
+          // 绘制上升轨迹
           if (!this.exploded) {
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = `hsla(${this.hue}, 100%, 50%, 1)`;
-            ctx.fill();
+            ctx.moveTo(this.x, document.documentElement.clientHeight);
+            ctx.lineTo(this.x, this.y);
+            ctx.strokeStyle = `hsla(${this.hue}, 80%, 60%, 0.7)`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
           }
 
+          // 绘制爆炸粒子
           this.particles.forEach((p) => p.draw(ctx));
         }
       }
@@ -417,26 +430,33 @@
         constructor(x, y, angle, hue) {
           this.x = x;
           this.y = y;
-          this.angle = angle + (Math.random() - 0.5) * 0.4; // 随机偏移角度
-          this.velocity = Math.random() * 5 + 2;
-          this.hue = hue + Math.random() * 20 - 10;
-          this.gravity = 0.2;
+          this.angle = angle + (Math.random() - 0.5) * 1.2;
+          this.velocity = Math.random() * 8 + 5;
+          this.gravity = 0.4; // 加大重力
+          this.friction = 0.93; // 减少空气阻力
+          this.hue = hue + Math.random() * 30 - 15; // 色相波动
           this.opacity = 1;
-          this.friction = Math.random() * 0.05 + 0.95;
-          this.size = Math.random() * 2 + 1;
+          this.size = Math.random() * 3 + 1;
         }
 
         update() {
           this.velocity *= this.friction;
           this.x += Math.cos(this.angle) * this.velocity;
           this.y += Math.sin(this.angle) * this.velocity + this.gravity;
-          this.opacity -= 0.015;
+          this.opacity -= 0.018; // 减缓消失速度
         }
 
         draw(ctx) {
+          // 添加发光效果
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${this.hue}, 80%, 50%, ${this.opacity * 0.3})`;
+          ctx.fill();
+
+          // 核心粒子
           ctx.beginPath();
           ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-          ctx.fillStyle = `hsla(${this.hue}, 80%, 60%, ${this.opacity})`;
+          ctx.fillStyle = `hsla(${this.hue}, 80%, 70%, ${this.opacity})`;
           ctx.fill();
         }
       }
@@ -444,22 +464,21 @@
       // 烟花系统控制器
       class FireworksSystem {
         constructor() {
+          this.fireworks = [];
           this.canvas = document.getElementById("fireworks-canvas");
           this.ctx = this.canvas.getContext("2d");
-          this.fireworks = [];
           this.resize();
-          window.addEventListener("resize", this.resize.bind(this));
+          window.addEventListener("resize", () => this.resize());
 
-          // 监听钢琴事件触发烟花
+          // 绑定琴键事件
           document.querySelectorAll(".key").forEach((key) => {
             key.addEventListener("mousedown", () => {
-              if (Math.random() > 0.7) {
-                // 30%概率触发
-                const rect = key.getBoundingClientRect();
-                this.launch(rect.left + rect.width / 2);
-              }
+              const rect = key.getBoundingClientRect();
+              this.launch(rect.left + rect.width / 2);
             });
           });
+
+          this.animate();
         }
 
         resize() {
@@ -472,18 +491,42 @@
         }
 
         animate() {
-          this.ctx.fillStyle = "rgba(255, 255, 255, 0.01)";
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+          // 添加尾迹效果
+          this.ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
           this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-          this.fireworks = this.fireworks.filter((firework) => {
+          this.fireworks.forEach((firework) => {
             firework.update();
-            return !firework.exploded || firework.particles.length > 0;
+            firework.draw(this.ctx);
           });
 
-          this.fireworks.forEach((firework) => firework.draw(this.ctx));
-          requestAnimationFrame(this.animate.bind(this));
+          // 自动清理
+          this.fireworks = this.fireworks.filter(
+            (f) => !f.exploded || f.particles.length > 0
+          );
+
+          requestAnimationFrame(() => this.animate());
         }
       }
+
+      // 琴键点击事件
+      document.querySelectorAll(".key").forEach((keyEl) => {
+        keyEl.addEventListener("click", () => {
+          const key = keyEl.getAttribute("data-key");
+          if (keyMap[key]) {
+            const { note, octaveOffset } = keyMap[key];
+            const effectiveOctave = baseOctave + octaveOffset;
+            playNote(note, effectiveOctave);
+            keyEl.classList.add("active");
+            showFloatingNote(note, effectiveOctave, keyEl);
+            setTimeout(() => {
+              keyEl.classList.remove("active");
+            }, 200);
+          }
+        });
+      });
 
       // 键盘事件监听
       document.addEventListener("keydown", (event) => {
@@ -501,23 +544,6 @@
             }, 200);
           }
         }
-      });
-
-      // 鼠标点击事件
-      document.querySelectorAll(".key").forEach((keyEl) => {
-        keyEl.addEventListener("click", () => {
-          const key = keyEl.getAttribute("data-key");
-          if (keyMap[key]) {
-            const { note, octaveOffset } = keyMap[key];
-            const effectiveOctave = baseOctave + octaveOffset;
-            playNote(note, effectiveOctave);
-            keyEl.classList.add("active");
-            showFloatingNote(note, effectiveOctave, keyEl);
-            setTimeout(() => {
-              keyEl.classList.remove("active");
-            }, 200);
-          }
-        });
       });
 
       // 控制面板按钮
@@ -541,9 +567,9 @@
         });
 
       updateDisplay();
+
       // 初始化烟花系统
       const fireworks = new FireworksSystem();
-      fireworks.animate();
     </script>
   </body>
 </html>
