@@ -6,7 +6,7 @@
     <title>高级虚拟电子钢琴 - 跳动音符效果</title>
     <style>
       :root {
-        --theme-color: #ee479a;
+        --theme-color: rgb(255 105 180);
         --theme-gradient: linear-gradient(45deg, #ff69b4, #ff3366);
       }
 
@@ -25,6 +25,7 @@
         position: relative;
         z-index: 2;
         margin: 20px auto;
+        opacity: 0.8;
       }
 
       .controls > div:first-of-type {
@@ -35,10 +36,11 @@
         padding: 8px 12px;
         margin: 0 5px;
         font-size: 14px;
-        background: rgba(255, 255, 255, 0.9);
+        background: transparent;
         border: 2px solid var(--theme-color);
         border-radius: 20px;
-        transition: all 0.3s;
+        box-sizing: border-box;
+        color: #fff;
       }
 
       .controls #current-octave,
@@ -50,90 +52,181 @@
       .controls button:hover {
         background: var(--theme-color);
         color: white;
-        transform: translateY(-2px);
       }
 
       .piano-container {
         position: relative;
-        width: 480px;
+        width: 100%;
+        max-width: 480px;
         height: 200px;
         margin: 0 auto;
         z-index: 2; /* 高于Canvas */
-        background: rgba(255, 255, 255, 0.8); /* 半透明白底 */
-        backdrop-filter: blur(5px); /* 毛玻璃效果 */
+
+        isolation: isolate; /* 创建新层叠上下文 */
+        background-attachment: fixed;
+        mix-blend-mode: screen; /* 采用屏幕混合模式 */
+
+        /* 差值遮罩实现 */
+        mask-image: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.6) 20%,
+          rgba(0, 0, 0, 0.3) 80%
+        );
+        backdrop-filter: brightness(1.1) contrast(0.98) hue-rotate(-5deg);
       }
 
       .piano {
+        display: flex;
         position: relative;
-        width: 480px;
+        width: 100%;
         height: 200px;
       }
 
       .key {
-        position: absolute;
         border: 1px solid #000;
         cursor: pointer;
         user-select: none;
+
+        /* 基础半透明材质 */
+        background: radial-gradient(
+            circle at 75% 25%,
+            rgba(255, 255, 255, 0.4) 0%,
+            rgba(255, 255, 255, 0.1) 100%
+          ),
+          linear-gradient(
+            145deg,
+            rgba(255, 182, 193, 0.85) 30%,
+            rgba(255, 105, 180, 0.7) 70%
+          );
+
+        /* 微光晕溢出控制 */
+        filter: drop-shadow(0 2px 4px rgba(255, 105, 180, 0.2))
+          url(#spill-suppressor); /* SVG滤镜控制色溢 */
       }
 
-      .white {
-        width: 60px;
+      /* 白键自适应布局 */
+      .key.white {
+        width: calc(100% / 8); /* 8个白键均分宽度 */
         height: 200px;
-        background: white;
+        background: #fff;
         z-index: 1;
+        color: #333;
       }
 
-      .black {
-        width: 40px;
+      /* 黑键样式 */
+      .key.black {
+        position: absolute;
+        width: 28px; /* 手机端适当缩小黑键宽度 */
         height: 120px;
-        background: black;
+        background: #000;
         z-index: 2;
         color: #fff;
       }
 
-      .key.active.white {
-        background: linear-gradient(45deg, #fff5f5, #ffecec);
-        box-shadow: inset 0 0 15px #ffb6c1;
-      }
-      .key.active.black {
-        background: #555;
-      }
+      /* 黑键定位（基于白键宽度计算） */
+      .key.black[data-key='w'] {
+        left: calc(100% / 8 * 0.7);
+      } /* W */
+      .key.black[data-key='e'] {
+        left: calc(100% / 8 * 1.7);
+      } /* E */
+      .key.black[data-key='t'] {
+        left: calc(100% / 8 * 3.7);
+      } /* T */
+      .key.black[data-key='y'] {
+        left: calc(100% / 8 * 4.7);
+      } /* Y */
+      .key.black[data-key='u'] {
+        left: calc(100% / 8 * 5.7);
+      } /* U */
 
-      .black.active::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -10px;
-        width: 140%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent 20%,
-          rgba(255, 182, 193, 0.6) 50%,
-          transparent 80%
-        );
-        animation: blackShine 0.4s;
-      }
-
-      @keyframes blackShine {
-        from {
-          left: -10px;
-        }
-        to {
-          left: 100%;
-        }
+      .key.active {
+        /* 激活态透明度变化 */
+        background-color: rgba(255, 182, 193, 0.6);
+        backdrop-filter: brightness(1.2) saturate(1.5);
       }
 
       .instructions {
         margin-top: 30px;
         text-align: left;
-        max-width: 480px;
         margin-left: auto;
         margin-right: auto;
         background: #fff;
         padding: 15px;
         border-radius: 5px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 乐谱容器样式 */
+      .notation-section {
+        position: relative;
+        z-index: 2;
+        margin: 1rem auto;
+        max-width: 480px;
+        padding: 0 1rem;
+      }
+
+      .notation-title {
+        font-size: 1.1rem;
+        color: #ff69b4;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: opacity 0.3s;
+      }
+
+      .notation-title:hover {
+        opacity: 0.8;
+      }
+
+      .notation-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        font-size: 0.9rem;
+      }
+
+      .notation-item {
+        background: rgba(255, 182, 193, 0.65);
+        border: 1px solid rgba(255, 105, 180, 0.3);
+        border-radius: 12px;
+        padding: 0.4rem 0.8rem;
+        backdrop-filter: blur(2px);
+        transition: all 0.3s;
+      }
+
+      /* 移动端优化 */
+      @media (max-width: 480px) {
+        .notation-item {
+          font-size: 0.8rem;
+          padding: 0.3rem 0.6rem;
+          border-radius: 8px;
+        }
+      }
+
+      /* 动态折叠效果 */
+      .notation-list.collapsed {
+        max-height: 3em;
+        overflow: hidden;
+        mask-image: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 1) 60%,
+          rgba(0, 0, 0, 0) 100%
+        );
+      }
+
+      /* 按键高亮提示 */
+      [data-keys]:hover::after {
+        content: attr(data-keys);
+        position: absolute;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
       }
 
       #fireworks-canvas {
@@ -150,7 +243,7 @@
       <div>
         <button id="octave-down">八度 -1</button>
         <button id="octave-up">八度 +1</button>
-        <span id="current-octave">当前基准八度: 4</span>
+        <span id="current-octave">当前八度: 4</span>
       </div>
       <div>
         <button id="transpose-down">转调 -1</button>
@@ -162,29 +255,45 @@
     <div class="piano-container">
       <div class="piano">
         <!-- 白键 -->
-        <div class="key white" data-key="a" style="left: 0px">a</div>
-        <div class="key white" data-key="s" style="left: 60px">s</div>
-        <div class="key white" data-key="d" style="left: 120px">d</div>
-        <div class="key white" data-key="f" style="left: 180px">f</div>
-        <div class="key white" data-key="g" style="left: 240px">g</div>
-        <div class="key white" data-key="h" style="left: 300px">h</div>
-        <div class="key white" data-key="j" style="left: 360px">j</div>
-        <div class="key white" data-key="k" style="left: 420px">k</div>
+        <div class="key white" data-key="a">a</div>
+        <div class="key white" data-key="s">s</div>
+        <div class="key white" data-key="d">d</div>
+        <div class="key white" data-key="f">f</div>
+        <div class="key white" data-key="g">g</div>
+        <div class="key white" data-key="h">h</div>
+        <div class="key white" data-key="j">j</div>
+        <div class="key white" data-key="k">k</div>
 
         <!-- 黑键 -->
-        <div class="key black" data-key="w" style="left: 40px">w</div>
-        <div class="key black" data-key="e" style="left: 100px">e</div>
-        <div class="key black" data-key="t" style="left: 220px">t</div>
-        <div class="key black" data-key="y" style="left: 280px">y</div>
-        <div class="key black" data-key="u" style="left: 340px">u</div>
+        <div class="key black" data-key="w">w</div>
+        <div class="key black" data-key="e">e</div>
+        <div class="key black" data-key="t">t</div>
+        <div class="key black" data-key="y">y</div>
+        <div class="key black" data-key="u">u</div>
       </div>
     </div>
 
     <!-- 浮动音符显示区域 -->
     <div id="notes-container"></div>
 
+    <div class="notation-section">
+      <h2 class="notation-title" onclick="toggleNotation()">
+        《欢乐颂》演奏提示 ▼
+      </h2>
+      <ul class="notation-list collapsed">
+        <li class="notation-item" data-keys="d, d, f, g">1: d, d, f, g</li>
+        <li class="notation-item" data-keys="g, f, d, s">2: g, f, d, s</li>
+        <li class="notation-item" data-keys="a, a, s, d">3: a, a, s, d</li>
+        <li class="notation-item" data-keys="d, s, s">4: d, s, s –</li>
+        <li class="notation-item" data-keys="d, d, f, g">5: d, d, f, g</li>
+        <li class="notation-item" data-keys="g, f, d, s">6: g, f, d, s</li>
+        <li class="notation-item" data-keys="a, a, s, d">7: a, a, s, d</li>
+        <li class="notation-item" data-keys="s, a, a">8: s, a, a –</li>
+      </ul>
+    </div>
+
     <!-- <div class="instructions">
-      <h2>键盘映射（当前基准八度和转调会影响实际音高）</h2>
+      <h2>键盘映射（当前八度和转调会影响实际音高）</h2>
       <ul>
         <li>a: C</li>
         <li>w: C#</li>
@@ -223,34 +332,34 @@
       // 定义各自然音相对于C的半音偏移
       const noteOffsets = {
         C: 0,
-        "C#": 1,
+        'C#': 1,
         D: 2,
-        "D#": 3,
+        'D#': 3,
         E: 4,
         F: 5,
-        "F#": 6,
+        'F#': 6,
         G: 7,
-        "G#": 8,
+        'G#': 8,
         A: 9,
-        "A#": 10,
+        'A#': 10,
         B: 11,
       };
 
       // 键盘映射，每个键映射到音符和相对于基准八度的偏移
       const keyMap = {
-        a: { note: "C", octaveOffset: 0 },
-        w: { note: "C#", octaveOffset: 0 },
-        s: { note: "D", octaveOffset: 0 },
-        e: { note: "D#", octaveOffset: 0 },
-        d: { note: "E", octaveOffset: 0 },
-        f: { note: "F", octaveOffset: 0 },
-        t: { note: "F#", octaveOffset: 0 },
-        g: { note: "G", octaveOffset: 0 },
-        y: { note: "G#", octaveOffset: 0 },
-        h: { note: "A", octaveOffset: 0 },
-        u: { note: "A#", octaveOffset: 0 },
-        j: { note: "B", octaveOffset: 0 },
-        k: { note: "C", octaveOffset: 1 }, // “k”键代表高一个八度的C
+        a: { note: 'C', octaveOffset: 0 },
+        w: { note: 'C#', octaveOffset: 0 },
+        s: { note: 'D', octaveOffset: 0 },
+        e: { note: 'D#', octaveOffset: 0 },
+        d: { note: 'E', octaveOffset: 0 },
+        f: { note: 'F', octaveOffset: 0 },
+        t: { note: 'F#', octaveOffset: 0 },
+        g: { note: 'G', octaveOffset: 0 },
+        y: { note: 'G#', octaveOffset: 0 },
+        h: { note: 'A', octaveOffset: 0 },
+        u: { note: 'A#', octaveOffset: 0 },
+        j: { note: 'B', octaveOffset: 0 },
+        k: { note: 'C', octaveOffset: 1 }, // “k”键代表高一个八度的C
       };
 
       let baseOctave = 4;
@@ -258,10 +367,10 @@
 
       function updateDisplay() {
         document.getElementById(
-          "current-octave"
-        ).textContent = `当前基准八度: ${baseOctave}`;
+          'current-octave'
+        ).textContent = `当前八度: ${baseOctave}`;
         document.getElementById(
-          "current-transpose"
+          'current-transpose'
         ).textContent = `当前转调: ${transpose}`;
       }
 
@@ -269,7 +378,7 @@
       function getFrequency(note, octave) {
         const semitoneDiff =
           (octave - 4) * 12 +
-          (noteOffsets[note] - noteOffsets["A"]) +
+          (noteOffsets[note] - noteOffsets['A']) +
           transpose;
         return 440 * Math.pow(2, semitoneDiff / 12);
       }
@@ -292,7 +401,7 @@
           Math.min(96000, Number.isFinite(freq) ? freq : 440)
         ); // 强制限定有效范围
         oscillator.frequency.value = Math.fround(safeFreq); // 解决精度问题
-        oscillator.type = "sine";
+        oscillator.type = 'sine';
 
         const now = audioContext.currentTime;
         gainNode.gain.cancelScheduledValues(now);
@@ -434,16 +543,16 @@
           this.maxFreq = 2093.0; // C7 (最高音)
           this.heightRange = [0.5, 0.9]; // 屏幕高度比例范围 [最高音位置, 最低音位置]
 
-          this.canvas = document.getElementById("fireworks-canvas");
-          this.ctx = this.canvas.getContext("2d");
+          this.canvas = document.getElementById('fireworks-canvas');
+          this.ctx = this.canvas.getContext('2d');
           this.resize();
-          window.addEventListener("resize", () => this.resize());
+          window.addEventListener('resize', () => this.resize());
 
           // 在琴键事件绑定中传递频率
-          document.querySelectorAll(".key").forEach((keyElement) => {
-            keyElement.addEventListener("mousedown", () => {
+          document.querySelectorAll('.key').forEach((keyElement) => {
+            keyElement.addEventListener('mousedown', () => {
               const rect = keyElement.getBoundingClientRect();
-              const key = keyElement.getAttribute("data-key");
+              const key = keyElement.getAttribute('data-key');
               const { note, octaveOffset } = keyMap[key];
               const effectiveOctave = baseOctave + octaveOffset;
               const frequency = getFrequency(note, effectiveOctave);
@@ -478,8 +587,8 @@
             this.canvas.height / 2,
             Math.max(this.canvas.width, this.canvas.height)
           );
-          gradient.addColorStop(0, "#0a0a2a");
-          gradient.addColorStop(1, "#000000");
+          gradient.addColorStop(0, '#0a0a2a');
+          gradient.addColorStop(1, '#000000');
 
           this.ctx.fillStyle = gradient;
           this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -529,7 +638,7 @@
           this.drawBackground();
 
           // 添加尾迹效果
-          this.ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
           this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
           this.fireworks.forEach((firework) => {
@@ -547,23 +656,23 @@
       }
 
       // 琴键点击事件
-      document.querySelectorAll(".key").forEach((keyEl) => {
-        keyEl.addEventListener("click", () => {
-          const key = keyEl.getAttribute("data-key");
+      document.querySelectorAll('.key').forEach((keyEl) => {
+        keyEl.addEventListener('click', () => {
+          const key = keyEl.getAttribute('data-key');
           if (keyMap[key]) {
             const { note, octaveOffset } = keyMap[key];
             const effectiveOctave = baseOctave + octaveOffset;
             playNote(note, effectiveOctave);
-            keyEl.classList.add("active");
+            keyEl.classList.add('active');
             setTimeout(() => {
-              keyEl.classList.remove("active");
+              keyEl.classList.remove('active');
             }, 200);
           }
         });
       });
 
       // 键盘事件监听
-      document.addEventListener("keydown", (event) => {
+      document.addEventListener('keydown', (event) => {
         const key = event.key.toLowerCase();
         if (keyMap[key]) {
           const { note, octaveOffset } = keyMap[key];
@@ -571,30 +680,30 @@
           playNote(note, effectiveOctave);
           const keyElement = document.querySelector(`.key[data-key="${key}"]`);
           if (keyElement) {
-            keyElement.classList.add("active");
+            keyElement.classList.add('active');
             setTimeout(() => {
-              keyElement.classList.remove("active");
+              keyElement.classList.remove('active');
             }, 200);
           }
         }
       });
 
       // 控制面板按钮
-      document.getElementById("octave-up").addEventListener("click", () => {
+      document.getElementById('octave-up').addEventListener('click', () => {
         baseOctave++;
         updateDisplay();
       });
-      document.getElementById("octave-down").addEventListener("click", () => {
+      document.getElementById('octave-down').addEventListener('click', () => {
         baseOctave--;
         updateDisplay();
       });
-      document.getElementById("transpose-up").addEventListener("click", () => {
+      document.getElementById('transpose-up').addEventListener('click', () => {
         transpose++;
         updateDisplay();
       });
       document
-        .getElementById("transpose-down")
-        .addEventListener("click", () => {
+        .getElementById('transpose-down')
+        .addEventListener('click', () => {
           transpose--;
           updateDisplay();
         });
