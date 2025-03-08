@@ -3,10 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>高级虚拟电子钢琴 - 跳动音符效果</title>
+    <title>🎹✨ 𝅘𝅥𝅮𝅘𝅥 永恒琴花 🎼🌸</title>
     <style>
+      /* 引入轻量级Google字体 */
+      @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap');
       :root {
-        --theme-color: rgb(255 105 180);
+        --theme-color: rgb(233 193 35 / 29%);
         --theme-gradient: linear-gradient(45deg, #ff69b4, #ff3366);
       }
 
@@ -36,22 +38,21 @@
         padding: 8px 12px;
         margin: 0 5px;
         font-size: 14px;
-        background: transparent;
         border: 2px solid var(--theme-color);
         border-radius: 20px;
         box-sizing: border-box;
-        color: #fff;
+
+        background: linear-gradient(to right, #ff8805,  #d9b352);
+        background-clip: text;
+        color: transparent;
       }
 
       .controls #current-octave,
       .controls #current-transpose {
-        color: white;
+        background: linear-gradient(to right, #ff8805,  #d9b352);
+        background-clip: text;
+        color: transparent;
         margin: 0 5px;
-      }
-
-      .controls button:hover {
-        background: var(--theme-color);
-        color: white;
       }
 
       .piano-container {
@@ -146,17 +147,6 @@
         backdrop-filter: brightness(1.2) saturate(1.5);
       }
 
-      .instructions {
-        margin-top: 30px;
-        text-align: left;
-        margin-left: auto;
-        margin-right: auto;
-        background: #fff;
-        padding: 15px;
-        border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      }
-
       /* 乐谱容器样式 */
       .notation-section {
         position: relative;
@@ -168,10 +158,14 @@
 
       .notation-title {
         font-size: 1.1rem;
-        color: #ff69b4;
+        background: linear-gradient(to right, #ff8805,  #d9b352);
+        background-clip: text;
+        color: transparent;
         margin-bottom: 0.5rem;
         cursor: pointer;
         transition: opacity 0.3s;
+        opacity: 0.8;
+        
       }
 
       .notation-title:hover {
@@ -186,12 +180,14 @@
       }
 
       .notation-item {
-        background: rgba(255, 182, 193, 0.65);
-        border: 1px solid rgba(255, 105, 180, 0.3);
+        border: 1px solid rgb(233 193 35 / 45%);
         border-radius: 12px;
         padding: 0.4rem 0.8rem;
         backdrop-filter: blur(2px);
         transition: all 0.3s;
+        background: linear-gradient(to right, #ff8805,  #d9b352);
+        background-clip: text;
+        color: transparent;
       }
 
       /* 移动端优化 */
@@ -233,6 +229,72 @@
         left: 0;
         pointer-events: none;
         z-index: 1;
+      }
+
+      /* 文字容器定位 */
+      .starry-poem {
+        position: fixed;
+        z-index: 2; /* 确保在烟花之下 */
+        bottom: 10%;
+        left: 50%;
+        transform: translate(-50%, 0%);
+        width: 80vw;
+        max-width: 600px;
+        text-align: center;
+        pointer-events: none;
+        mix-blend-mode: normal;
+      }
+
+      /* 文字渐变与动画 */
+      .poem-text {
+        /* UC浏览器专用字体栈 */
+        font-family: 'STKaiti', /* 华文楷体（iOS/部分安卓） */ 'KaiTi',
+          /* Windows系统楷体 */ 'Noto Serif CJK SC',
+          /* Google Noto字体 */ 'DFKai-SB',
+          /* 华康楷体（部分安卓设备） */ 'BabelStone Han',
+          /* 备用书法字体 */ serif; /* 通用衬线字体 */
+
+        /* 增强楷体特征 */
+        font-style: italic;
+
+        /* 加大文字间距 */
+        letter-spacing: 1px;
+        line-height: 2;
+
+        background: linear-gradient(to right, #ff8805,  #d9b352);
+        background-clip: text;
+        color: transparent;
+
+        font-size: clamp(24px, 2.5vw, 28px);
+        line-height: 1.8;
+        opacity: 0.8;
+        text-shadow: 0 0 8px rgba(255, 182, 193, 0.2),
+          0 0 15px rgba(218, 112, 214, 0.1);
+        /* animation: poemGlow 6s ease-in-out infinite; */
+      }
+
+      /* 星光呼吸效果 */
+      @keyframes poemGlow {
+        0%,
+        100% {
+          opacity: 0.7;
+          filter: blur(1px);
+        }
+        50% {
+          opacity: 0.9;
+          filter: blur(0.5px);
+        }
+      }
+
+      /* 移动端优化 */
+      @media (max-width: 768px) {
+        .starry-poem {
+          transform: translate(-50%, 0%);
+        }
+        .poem-text {
+          font-size: 24px;
+          line-height: 1.6;
+        }
       }
     </style>
   </head>
@@ -290,38 +352,14 @@
       </ul>
     </div>
 
-    <!-- <div class="instructions">
-      <h2>键盘映射（当前八度和转调会影响实际音高）</h2>
-      <ul>
-        <li>a: C</li>
-        <li>w: C#</li>
-        <li>s: D</li>
-        <li>e: D#</li>
-        <li>d: E</li>
-        <li>f: F</li>
-        <li>t: F#</li>
-        <li>g: G</li>
-        <li>y: G#</li>
-        <li>h: A</li>
-        <li>u: A#</li>
-        <li>j: B</li>
-        <li>k: C（高于其他键一个八度）</li>
-      </ul>
-      <p>
-        通过“提高八度/降低八度”和“转调”按钮，你可以调整基准音域。每次按键触发后，还会出现一个跳动的音符动画，让交互更生动。
-      </p>
-      <h2>以钢琴曲《欢乐颂》为例，其演奏乐谱为：</h2>
-      <ul>
-        <li>小节1（3 3 4 5）：按键顺序 → d, d, f, g</li>
-        <li>小节2（5 4 3 2）：按键顺序 → g, f, d, s</li>
-        <li>小节3（1 1 2 3）：按键顺序 → a, a, s, d</li>
-        <li>小节4（3 2 2 -）：按键顺序 → d, s, s</li>
-        <li>小节5（3 3 4 5）：按键顺序 → d, d, f, g</li>
-        <li>小节6（5 4 3 2）：按键顺序 → g, f, d, s</li>
-        <li>小节7（1 1 2 3）：按键顺序 → a, a, s, d</li>
-        <li>小节8（2 1 1 -）：按键顺序 → s, a, a</li>
-      </ul>
-    </div> -->
+    <div class="starry-poem">
+      <div class="poem-text">
+        我不祝你勇敢、慷慨<br />
+        我祝你鼎沸<br />
+        祝你人生海海<br />
+        尽兴、开怀！
+      </div>
+    </div>
 
     <!-- 在body末尾添加canvas元素 -->
     <canvas id="fireworks-canvas"></canvas>
